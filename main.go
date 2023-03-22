@@ -1,22 +1,39 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path"
+	"strconv"
 )
 
+var scanPath string
+var m string
+var min int64 = 524288000
+
 func main() {
+	flag.StringVar(&scanPath, "f", "/", "扫描路径")
+	flag.StringVar(&m, "m", "524288000", "扫描文件大小")
+	flag.Parse()
+	t, err := strconv.ParseInt(m, 10, 64)
+	if err != nil {
+		log.Println("输入扫描最小值不正确")
+	}
+	min = t
 	fmt.Println("Hello World")
 	//eachFile("D:\\work\\ProjectWorkspace\\GO_WorkSpace\\test")
-	eachFile("Z:\\video\\华语电影")
+	eachFile(scanPath)
+	fmt.Println("按任意键继续...")
+	var input string
+	fmt.Scanln(&input)
 }
 
 func eachFile(fileFullPath string) {
 	files, err := os.ReadDir(fileFullPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	var fileArray []os.DirEntry
 	var dirArray []os.DirEntry
@@ -32,8 +49,6 @@ func eachFile(fileFullPath string) {
 		eachFile(path.Join(fileFullPath, dir.Name()))
 	}
 }
-
-var min int64 = 524288000
 
 var output = "/repeat.txt"
 
