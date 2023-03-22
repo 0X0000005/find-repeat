@@ -35,8 +35,10 @@ func eachFile(fileFullPath string) {
 
 var min int64 = 524288000
 
+var output = "/repeat.txt"
+
 func compare(fileFullPath string, files []os.DirEntry) {
-	log.Printf("比对路径:%s\n", fileFullPath)
+	//log.Printf("比对路径:%s\n", fileFullPath)
 	for index, file := range files {
 		f1, err := file.Info()
 		if err != nil {
@@ -56,7 +58,8 @@ func compare(fileFullPath string, files []os.DirEntry) {
 			if f2.Size() < min {
 				continue
 			}
-			log.Printf("可能重复的文件:\n%s\n%s", path.Join(fileFullPath, f1.Name()), path.Join(fileFullPath, f2.Name()))
+			str := fmt.Sprintf("可能重复的文件:\n%s\n%s", path.Join(fileFullPath, f1.Name()), path.Join(fileFullPath, f2.Name()))
+			log.Println(str)
 		}
 	}
 }
