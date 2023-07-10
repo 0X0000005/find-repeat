@@ -24,6 +24,11 @@ func main() {
 	min = t
 	fmt.Println("Hello World")
 	//eachFile("D:\\work\\ProjectWorkspace\\GO_WorkSpace\\test")
+	err = createFile()
+	if err != nil {
+		fmt.Printf("创建输出文件出现错误:%v\n", err)
+		os.Exit(0)
+	}
 	eachFile(scanPath)
 	fmt.Println("按任意键继续...")
 	var input string
@@ -64,7 +69,6 @@ func compare(fileFullPath string, files []os.DirEntry) {
 			continue
 		}
 		for i := index + 1; i < len(files); i++ {
-
 			f2, err := files[i].Info()
 			if err != nil {
 				log.Println(err)
@@ -77,4 +81,28 @@ func compare(fileFullPath string, files []os.DirEntry) {
 			log.Println(str)
 		}
 	}
+}
+
+func isFileExist() bool {
+	_, err := os.Stat(output)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return false
+}
+
+func createFile() error {
+	if isFileExist() {
+		err := os.Remove(output)
+		return err
+	}
+	_, err := os.Create(output)
+	return err
+}
+
+func fileAppend(context string) {
+
 }
