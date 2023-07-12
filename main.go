@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 )
 
 var scanPath string
@@ -25,21 +26,36 @@ func main() {
 	}
 	min = t
 	fmt.Println("start scan")
-	err = createFile()
+	err = initFile()
 	if err != nil {
 		fmt.Printf("创建输出文件出现错误:%v\n", err)
 		os.Exit(0)
 	}
-	eachFile(scanPath)
+	err = eachFile(scanPath)
+	if err != nil {
+		fmt.Printf("扫描文件出现错误:%v\n", err)
+		os.Exit(0)
+	}
 	fmt.Println("按任意键继续...")
 	var input string
 	fmt.Scanln(&input)
 }
 
-func eachFile(fileFullPath string) {
+func eachFile(fileFullPath string) error {
+	file, err := os.OpenFile(output, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if file != nil {
+			if err != file.Close() {
+				fmt.Println(err)
+			}
+		}
+	}()
 	files, err := os.ReadDir(fileFullPath)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 	var fileArray []os.DirEntry
 	var dirArray []os.DirEntry
@@ -50,14 +66,17 @@ func eachFile(fileFullPath string) {
 			fileArray = append(fileArray, file)
 		}
 	}
-	compare(fileFullPath, fileArray)
+	compare(file, fileFullPath, fileArray)
 	for _, dir := range dirArray {
-		eachFile(path.Join(fileFullPath, dir.Name()))
+		err := eachFile(path.Join(fileFullPath, dir.Name()))
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func compare(fileFullPath string, files []os.DirEntry) {
-	//log.Printf("比对路径:%s\n", fileFullPath)
+func compare(f *os.File, fileFullPath string, files []os.DirEntry) {
 	for index, file := range files {
 		f1, err := file.Info()
 		if err != nil {
@@ -76,18 +95,26 @@ func compare(fileFullPath string, files []os.DirEntry) {
 			if f2.Size() < min {
 				continue
 			}
+			if strings.HasSuffix(f1.Name(), ".m2ts") && strings.HasSuffix(f2.Name(), ".m2ts") {
+				continue
+			}
 			{
-				str := fmt.Sprintf("可能重复的文件:\n%s\n%s", path.Join(fileFullPath, f1.Name()), path.Join(fileFullPath, f2.Name()))
+				str := fmt.Sprintf("可能重复的文件:\n%s|%s\n%s|%s", path.Join(fileFullPath, f1.Name()), size(f1.Size()), path.Join(fileFullPath, f2.Name()), size(f2.Size()))
 				log.Println(str)
 			}
 			{
-				str := fmt.Sprintf("****************************\n%s\n%s\n", path.Join(fileFullPath, f1.Name()), path.Join(fileFullPath, f2.Name()))
-				if fileAppend(str) != nil {
+				str := fmt.Sprintf("****************************\n%s|%s\n%s|%s\n", path.Join(fileFullPath, f1.Name()), size(f1.Size()), path.Join(fileFullPath, f2.Name()), size(f2.Size()))
+				err := fileAppend(f, str)
+				if err != nil {
 					log.Printf("写入文件错误:%v\n", err)
 				}
 			}
 		}
 	}
+}
+
+func size(size int64) string {
+	return fmt.Sprintf("%.2fG", float64(size)/float64(1024*1024*1024))
 }
 
 func isFileExist() bool {
@@ -96,26 +123,24 @@ func isFileExist() bool {
 		return true
 	}
 	if os.IsNotExist(err) {
+
 		return false
 	}
 	return false
 }
 
-func createFile() error {
+func initFile() error {
 	if isFileExist() {
 		err := os.Remove(output)
-		return err
+		if err != nil {
+			return err
+		}
 	}
 	_, err := os.Create(output)
 	return err
 }
 
-func fileAppend(context string) error {
-	file, err := os.OpenFile(output, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	_, err = file.WriteString(context)
+func fileAppend(file *os.File, context string) error {
+	_, err := file.WriteString(context)
 	return err
 }
